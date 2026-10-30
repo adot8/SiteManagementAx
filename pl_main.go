@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	adaptix "github.com/Adaptix-Framework/axc2"
+	adaptix "github.com/Adaptix-Framework/axc2/v2"
 )
 
 type Teamserver interface {
-	TsServiceSendDataAll(service string, data string)
-	TsServiceSendDataClient(operator string, service string, data string)
+	TsPluginServiceSendDataAll(service string, data string)
+	TsPluginServiceSendDataClient(operator string, service string, data string)
 
 	TsExtenderDataSave(extenderName string, key string, value []byte) error
 	TsExtenderDataLoad(extenderName string, key string) ([]byte, error)
@@ -53,6 +53,11 @@ func InitPlugin(ts any, moduleDir string, serviceConfig string) adaptix.PluginSe
 	return &PluginService{}
 }
 
+func (p *PluginService) CallRPC(operator string, function string, args string) (string, error) {
+	p.Call(operator, function, args)
+	return "", nil
+}
+
 func (p *PluginService) Call(operator string, function string, args string) {
 	switch function {
 	case "host_file":
@@ -70,12 +75,12 @@ func (p *PluginService) Call(operator string, function string, args string) {
 
 func send(operator string, payload any) {
 	j, _ := json.Marshal(payload)
-	Ts.TsServiceSendDataClient(operator, "FileHost", string(j))
+	Ts.TsPluginServiceSendDataClient(operator, "FileHost", string(j))
 }
 
 func broadcast(payload any) {
 	j, _ := json.Marshal(payload)
-	Ts.TsServiceSendDataAll("FileHost", string(j))
+	Ts.TsPluginServiceSendDataAll("FileHost", string(j))
 }
 
 func sendError(operator string, msg string) {

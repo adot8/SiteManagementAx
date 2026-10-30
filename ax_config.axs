@@ -111,22 +111,54 @@ function detectMimeType(filename) {
 // ── Entry ────────────────────────────────────────────────────────────────────
 
 function InitService() {
-    let hostAction = menu.create_action("Host File...", function() {
-        showHostFileDialog();
+    W.dock = form.create_ext_dock("file_host", "Site Management", "bottom");
+
+    W.siteTable = form.create_table(["URI", "Host", "Port", "SSL", "Content-Type", "Size", "Downloads", "One-Shot", "Created By", "URL"]);
+    W.siteTable.setSortingEnabled(true);
+
+    let hostBtn   = form.create_button("Host File...");
+    let attackBtn = form.create_button("Attacks...");
+    let removeBtn = form.create_button("Remove Selected");
+    let copyBtn   = form.create_button("Copy URL");
+    let refreshBtn = form.create_button("Refresh");
+
+    form.connect(hostBtn,    "clicked", function() { showHostFileDialog(); });
+    form.connect(attackBtn,  "clicked", function() { showAttacksDialog(); });
+    form.connect(removeBtn,  "clicked", function() {
+        let rows = W.siteTable.selectedRows();
+        if (rows.length === 0) return;
+        for (let i = 0; i < rows.length; i++) {
+            let uri  = W.siteTable.text(rows[i], 0);
+            let host = W.siteTable.text(rows[i], 1);
+            let port = W.siteTable.text(rows[i], 2);
+            let siteKey = host + ":" + port + uri;
+            ax.service_command("FileHost", "remove_site", { site_key: siteKey });
+        }
     });
-    let manageAction = menu.create_action("Manage", function() {
-        showManageDialog();
+    form.connect(copyBtn, "clicked", function() {
+        let rows = W.siteTable.selectedRows();
+        if (rows.length === 0) return;
+        let url = W.siteTable.text(rows[0], 9);
+        ax.copy_to_clipboard(url);
     });
-    let attackAction = menu.create_action("Attacks...", function() {
-        showAttacksDialog();
+    form.connect(refreshBtn, "clicked", function() {
+        ax.service_command("FileHost", "list_sites", {});
     });
 
-    let sitesMenu = menu.create_menu("Site Management");
-    sitesMenu.addItem(hostAction);
-    sitesMenu.addItem(attackAction);
-    sitesMenu.addItem(menu.create_separator());
-    sitesMenu.addItem(manageAction);
-    menu.add_main(sitesMenu);
+    let btnLayout = form.create_hlayout();
+    btnLayout.addWidget(hostBtn);
+    btnLayout.addWidget(attackBtn);
+    btnLayout.addWidget(form.create_hspacer());
+    btnLayout.addWidget(removeBtn);
+    btnLayout.addWidget(copyBtn);
+    btnLayout.addWidget(refreshBtn);
+    let btnPanel = form.create_panel();
+    btnPanel.setLayout(btnLayout);
+
+    let mainLayout = form.create_vlayout();
+    mainLayout.addWidget(W.siteTable);
+    mainLayout.addWidget(btnPanel);
+    W.dock.setLayout(mainLayout);
 
     ax.service_command("FileHost", "list_sites", {});
 }
@@ -233,7 +265,7 @@ function showHostFileDialog() {
     let checkOneShot = form.create_check("One-shot (serve once, then remove)");
 
     form.connect(browseBtn, "clicked", function() {
-        let path = ax.prompt_open_file("Select file to host", "All Files (*)");
+        let path = ax.prompt_open_file("Select file to host");
         if (path && path.length > 0) {
             selectedPath = path;
             let basename = ax.file_basename(path);
@@ -281,7 +313,7 @@ function showHostFileDialog() {
         return;
     }
 
-    let fileB64 = ax.file_read(selectedPath);
+    let fileB64 = ax.encode_file("base64", selectedPath);
     if (!fileB64 || fileB64.length === 0) {
         ax.show_message("FileHost", "Failed to read file.");
         return;
@@ -305,59 +337,7 @@ function showHostFileDialog() {
     });
 }
 
-// ── Site Management Dialog ──────────────────────────────────────────────────
-
-function showManageDialog() {
-    W.siteTable = form.create_table(["URI", "Host", "Port", "SSL", "Content-Type", "Size", "Downloads", "One-Shot", "Created By", "URL"]);
-    W.siteTable.setSortingEnabled(true);
-    refreshSiteTable();
-
-    let removeBtn  = form.create_button("Remove Selected");
-    let copyUrlBtn = form.create_button("Copy URL");
-    let refreshBtn = form.create_button("Refresh");
-
-    form.connect(removeBtn, "clicked", function() {
-        let rows = W.siteTable.selectedRows();
-        if (rows.length === 0) return;
-        for (let i = 0; i < rows.length; i++) {
-            let uri  = W.siteTable.text(rows[i], 0);
-            let host = W.siteTable.text(rows[i], 1);
-            let port = W.siteTable.text(rows[i], 2);
-            let siteKey = host + ":" + port + uri;
-            ax.service_command("FileHost", "remove_site", { site_key: siteKey });
-        }
-    });
-
-    form.connect(copyUrlBtn, "clicked", function() {
-        let rows = W.siteTable.selectedRows();
-        if (rows.length === 0) return;
-        let url = W.siteTable.text(rows[0], 9);
-        ax.copy_to_clipboard(url);
-    });
-
-    form.connect(refreshBtn, "clicked", function() {
-        ax.service_command("FileHost", "list_sites", {});
-    });
-
-    let btnLayout = form.create_hlayout();
-    btnLayout.addWidget(removeBtn);
-    btnLayout.addWidget(copyUrlBtn);
-    btnLayout.addWidget(form.create_hspacer());
-    btnLayout.addWidget(refreshBtn);
-    let btnPanel = form.create_panel();
-    btnPanel.setLayout(btnLayout);
-
-    let mainLayout = form.create_vlayout();
-    mainLayout.addWidget(W.siteTable);
-    mainLayout.addWidget(btnPanel);
-
-    let dialog = form.create_dialog("Site Management");
-    dialog.setSize(950, 500);
-    dialog.setLayout(mainLayout);
-    dialog.exec();
-
-    W.siteTable = null;
-}
+// ── (showManageDialog removed — site table is now in the ext_dock) ─────────
 
 // ── Attacks Dialog ──────────────────────────────────────────────────────────
 
