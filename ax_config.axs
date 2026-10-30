@@ -132,7 +132,7 @@ function InitService() {
             let host = W.siteTable.text(rows[i], 1);
             let port = W.siteTable.text(rows[i], 2);
             let siteKey = host + ":" + port + uri;
-            ax.service_command("FileHost", "remove_site", { site_key: siteKey });
+            ax.plugin_service_command("FileHost", "remove_site", { site_key: siteKey });
         }
     });
     form.connect(copyBtn, "clicked", function() {
@@ -142,7 +142,7 @@ function InitService() {
         ax.copy_to_clipboard(url);
     });
     form.connect(refreshBtn, "clicked", function() {
-        ax.service_command("FileHost", "list_sites", {});
+        ax.plugin_service_command("FileHost", "list_sites", {});
     });
 
     let btnLayout = form.create_hlayout();
@@ -160,7 +160,7 @@ function InitService() {
     mainLayout.addWidget(btnPanel);
     W.dock.setLayout(mainLayout);
 
-    ax.service_command("FileHost", "list_sites", {});
+    ax.plugin_service_command("FileHost", "list_sites", {});
 }
 
 // ── Data Handler ─────────────────────────────────────────────────────────────
@@ -325,7 +325,7 @@ function showHostFileDialog() {
         return;
     }
 
-    ax.service_command("FileHost", "host_file", {
+    ax.plugin_service_command("FileHost", "host_file", {
         uri:          uri,
         host:         comboHost.currentText(),
         port:         spinPort.value(),
@@ -427,7 +427,7 @@ function showAttacksDialog() {
             let methods = ATTACK_METHODS[catKey];
             let methodIdx = comboMethod.currentIndex();
             if (methodIdx < 0 || methodIdx >= methods.length) return;
-            ax.service_command("FileHost", "generate_attack", {
+            ax.plugin_service_command("FileHost", "generate_attack", {
                 url:     url,
                 method:  methods[methodIdx].key,
                 encoded: checkEnc.isChecked(),
